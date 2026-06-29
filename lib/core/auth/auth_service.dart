@@ -49,19 +49,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   int _pollInterval = 5;
   bool _isPolling = false;
 
-  AuthNotifier(this._ref) : super(const AuthState()) {
-    _loadStoredToken();
-  }
+  AuthNotifier(this._ref) : super(const AuthState());
 
-  Future<void> _loadStoredToken() async {
-    try {
-      final settingsService = await _ref.read(settingsServiceProvider.future);
-      final token = settingsService.accessToken;
-      if (token != null) {
-        state = AuthState(status: AuthStatus.authenticated, accessToken: token);
-      }
-    } catch (_) {
-      // Settings service not ready yet — stay unauthenticated
+  /// Called by app.dart after settings service is initialized and a stored
+  /// token is found. Synchronous — no async construction needed.
+  void restoreToken(String token) {
+    if (state.status == AuthStatus.unauthenticated) {
+      state = AuthState(status: AuthStatus.authenticated, accessToken: token);
     }
   }
 

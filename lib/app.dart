@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
+import 'core/auth/auth_service.dart';
 import 'core/storage/database_service.dart';
 import 'core/storage/settings_service.dart';
 
@@ -25,7 +26,11 @@ class _YTMusicAppState extends ConsumerState<YTMusicApp> {
 
   Future<void> _initServices() async {
     await ref.read(databaseServiceProvider.future);
-    await ref.read(settingsServiceProvider.future);
+    final settingsService = await ref.read(settingsServiceProvider.future);
+    final token = settingsService.accessToken;
+    if (token != null && mounted) {
+      ref.read(authProvider.notifier).restoreToken(token);
+    }
     if (mounted) {
       setState(() => _initialized = true);
     }

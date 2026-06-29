@@ -13,7 +13,7 @@ class SettingsService {
   late Box _authBox;
 
   Future<void> initialize() async {
-    await Hive.initFlutter();
+    // Hive.initFlutter() called in main() before runApp()
     _authBox = await Hive.openBox(_authBoxName);
   }
 
