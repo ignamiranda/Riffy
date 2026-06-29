@@ -94,11 +94,11 @@ class SettingsScreen extends ConsumerWidget {
                 const _SettingsDivider(),
                 SwitchListTile(
                   secondary: const Icon(Icons.wifi),
-                  title: const Text('Streaming Only'),
-                  subtitle: const Text('Download over Wi-Fi only'),
+                  title: const Text('Wi-Fi Only'),
+                  subtitle: const Text('Stream and download over Wi-Fi only'),
                   value: false,
                   onChanged: (_) {
-                    // TODO: Toggle streaming only
+                    // TODO: Toggle Wi-Fi only mode
                   },
                 ),
               ],
