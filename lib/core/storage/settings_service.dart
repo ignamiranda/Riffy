@@ -1,4 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
+const _authBoxName = 'auth';
 
 final settingsServiceProvider = FutureProvider<SettingsService>((ref) async {
   final service = SettingsService();
@@ -7,11 +10,24 @@ final settingsServiceProvider = FutureProvider<SettingsService>((ref) async {
 });
 
 class SettingsService {
+  late Box _authBox;
+
   Future<void> initialize() async {
-    // TODO: Initialize Hive boxes
+    await Hive.initFlutter();
+    _authBox = await Hive.openBox(_authBoxName);
+  }
+
+  String? get accessToken => _authBox.get('accessToken') as String?;
+
+  Future<void> setAccessToken(String? token) async {
+    if (token != null) {
+      await _authBox.put('accessToken', token);
+    } else {
+      await _authBox.delete('accessToken');
+    }
   }
 
   Future<void> dispose() async {
-    // TODO: Close Hive boxes
+    await _authBox.close();
   }
 }

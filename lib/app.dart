@@ -13,19 +13,37 @@ class YTMusicApp extends ConsumerStatefulWidget {
 }
 
 class _YTMusicAppState extends ConsumerState<YTMusicApp> {
+  bool _initialized = false;
+
   @override
   void initState() {
     super.initState();
-    _initServices();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initServices();
+    });
   }
 
   Future<void> _initServices() async {
-    ref.read(databaseServiceProvider.future);
-    ref.read(settingsServiceProvider.future);
+    await ref.read(databaseServiceProvider.future);
+    await ref.read(settingsServiceProvider.future);
+    if (mounted) {
+      setState(() => _initialized = true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_initialized) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
     final themeMode = ref.watch(themeModeProvider);
     final theme = ref.watch(appThemeProvider);
     final router = ref.watch(routerProvider);
