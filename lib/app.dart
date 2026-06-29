@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
+import 'core/auth/auth_service.dart';
 import 'core/storage/database_service.dart';
 import 'core/storage/settings_service.dart';
 
@@ -13,19 +14,41 @@ class YTMusicApp extends ConsumerStatefulWidget {
 }
 
 class _YTMusicAppState extends ConsumerState<YTMusicApp> {
+  bool _initialized = false;
+
   @override
   void initState() {
     super.initState();
-    _initServices();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initServices();
+    });
   }
 
   Future<void> _initServices() async {
-    ref.read(databaseServiceProvider.future);
-    ref.read(settingsServiceProvider.future);
+    await ref.read(databaseServiceProvider.future);
+    final settingsService = await ref.read(settingsServiceProvider.future);
+    final token = settingsService.accessToken;
+    if (token != null && mounted) {
+      ref.read(authProvider.notifier).restoreToken(token);
+    }
+    if (mounted) {
+      setState(() => _initialized = true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_initialized) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: Scaffold(
+          body: Center(
+            child: CircularProgressIndicator(),
+          ),
+        ),
+      );
+    }
+
     final themeMode = ref.watch(themeModeProvider);
     final theme = ref.watch(appThemeProvider);
     final router = ref.watch(routerProvider);

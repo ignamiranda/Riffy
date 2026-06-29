@@ -1,17 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/auth/auth_service.dart';
 import '../../core/theme/app_theme.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final authState = ref.watch(authProvider);
     final themeMode = ref.watch(themeModeProvider);
+
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.status == AuthStatus.authenticating && next.userCode != null) {
+        _showSignInDialog();
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -259,6 +271,105 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  BuildContext? _signInDialogContext;
+
+  void _showSignInDialog() {
+    if (_signInDialogContext != null) return;
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        _signInDialogContext = ctx;
+        return _SignInDialogContent(
+          onCancel: () {
+            ref.read(authProvider.notifier).cancelSignIn();
+          },
+        );
+      },
+    ).then((_) {
+      _signInDialogContext = null;
+    });
+  }
+}
+
+class _SignInDialogContent extends ConsumerWidget {
+  final VoidCallback onCancel;
+
+  const _SignInDialogContent({required this.onCancel});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+
+    ref.listen<AuthState>(authProvider, (_, next) {
+      if (next.status != AuthStatus.authenticating) {
+        Navigator.of(context).pop();
+      }
+    });
+
+    return AlertDialog(
+      title: const Text('Sign In'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Enter this code on the website to sign in:'),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: SelectableText(
+              authState.userCode ?? '',
+              style: TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'monospace',
+                letterSpacing: 8,
+                color: colorScheme.primary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 20),
+          GestureDetector(
+            onTap: () async {
+              final url = authState.verificationUrl;
+              if (url != null) {
+                await launchUrl(Uri.parse(url));
+              }
+            },
+            child: Text(
+              authState.verificationUrl ?? '',
+              style: TextStyle(
+                color: colorScheme.primary,
+                decoration: TextDecoration.underline,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Or visit the link above and enter the code.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: onCancel,
+          child: const Text('Cancel'),
+        ),
+      ],
     );
   }
 }
