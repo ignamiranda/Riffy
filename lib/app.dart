@@ -6,14 +6,14 @@ import 'core/auth/auth_service.dart';
 import 'core/storage/database_service.dart';
 import 'core/storage/settings_service.dart';
 
-class YTMusicApp extends ConsumerStatefulWidget {
-  const YTMusicApp({super.key});
+class Riffy extends ConsumerStatefulWidget {
+  const Riffy({super.key});
 
   @override
-  ConsumerState<YTMusicApp> createState() => _YTMusicAppState();
+  ConsumerState<Riffy> createState() => _RiffyState();
 }
 
-class _YTMusicAppState extends ConsumerState<YTMusicApp> {
+class _RiffyState extends ConsumerState<Riffy> {
   bool _initialized = false;
 
   @override
@@ -54,7 +54,7 @@ class _YTMusicAppState extends ConsumerState<YTMusicApp> {
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'YTMusic',
+      title: 'Riffy',
       debugShowCheckedModeBanner: false,
       theme: theme.light,
       darkTheme: theme.dark,

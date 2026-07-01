@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/settings_service.dart';
@@ -63,14 +64,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState(status: AuthStatus.authenticating);
 
     try {
-      final deviceResponse = await http.post(
-        Uri.parse(AuthConfig.deviceCodeUrl),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {
-          'client_id': AuthConfig.clientId,
-          'scope': AuthConfig.scope,
-        },
-      );
+      final deviceResponse = await http
+          .post(
+            Uri.parse(AuthConfig.deviceCodeUrl),
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: {
+              'client_id': AuthConfig.clientId,
+              'scope': AuthConfig.scope,
+            },
+          )
+          .timeout(const Duration(seconds: 15));
 
       final deviceData = json.decode(deviceResponse.body) as Map<String, dynamic>;
 
@@ -95,6 +98,21 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
 
       _startPolling();
+    } on TimeoutException {
+      state = const AuthState(
+        status: AuthStatus.error,
+        error: 'Request timed out. Check your connection and try again.',
+      );
+    } on SocketException {
+      state = const AuthState(
+        status: AuthStatus.error,
+        error: 'Could not connect. Check your internet connection.',
+      );
+    } on http.ClientException {
+      state = const AuthState(
+        status: AuthStatus.error,
+        error: 'Network error. Please try again later.',
+      );
     } catch (e) {
       state = AuthState(status: AuthStatus.error, error: e.toString());
     }
@@ -113,15 +131,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     _isPolling = true;
     try {
-      final response = await http.post(
-        Uri.parse(AuthConfig.tokenUrl),
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: {
-          'client_id': AuthConfig.clientId,
-          'device_code': state.deviceCode!,
-          'grant_type': 'urn:ietf:params:oauth:grant-type:device_code',
-        },
-      );
+      final response = await http
+          .post(
+            Uri.parse(AuthConfig.tokenUrl),
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: {
+              'client_id': AuthConfig.clientId,
+              'device_code': state.deviceCode!,
+              'grant_type': 'urn:ietf:params:oauth:grant-type:device_code',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
 
       final data = json.decode(response.body) as Map<String, dynamic>;
 
@@ -174,6 +194,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
           );
           break;
       }
+    } on TimeoutException {
+      _pollTimer?.cancel();
+      _pollTimer = null;
+      state = const AuthState(
+        status: AuthStatus.error,
+        error: 'Request timed out. Check your connection and try again.',
+      );
+    } on SocketException {
+      _pollTimer?.cancel();
+      _pollTimer = null;
+      state = const AuthState(
+        status: AuthStatus.error,
+        error: 'Could not connect. Check your internet connection.',
+      );
+    } on http.ClientException {
+      _pollTimer?.cancel();
+      _pollTimer = null;
+      state = const AuthState(
+        status: AuthStatus.error,
+        error: 'Network error. Please try again later.',
+      );
     } catch (e) {
       _pollTimer?.cancel();
       _pollTimer = null;

@@ -67,7 +67,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           : authState.status == AuthStatus.error
                               ? 'Error: ${authState.error}'
                               : 'Sign in to access your library',
-                      maxLines: 2,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
                     trailing: authState.status == AuthStatus.authenticating
@@ -177,7 +177,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => showLicensePage(
                     context: context,
-                    applicationName: 'YTMusic',
+                    applicationName: 'Riffy',
                     applicationVersion: '1.0.0',
                   ),
                 ),
