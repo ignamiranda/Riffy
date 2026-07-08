@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../storage/settings_service.dart';
@@ -103,15 +102,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         status: AuthStatus.error,
         error: 'Request timed out. Check your connection and try again.',
       );
-    } on SocketException {
-      state = const AuthState(
+    } on http.ClientException catch (e) {
+      state = AuthState(
         status: AuthStatus.error,
-        error: 'Could not connect. Check your internet connection.',
-      );
-    } on http.ClientException {
-      state = const AuthState(
-        status: AuthStatus.error,
-        error: 'Network error. Please try again later.',
+        error: _friendlyHttpError(e),
       );
     } catch (e) {
       state = AuthState(status: AuthStatus.error, error: e.toString());
@@ -201,19 +195,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
         status: AuthStatus.error,
         error: 'Request timed out. Check your connection and try again.',
       );
-    } on SocketException {
+    } on http.ClientException catch (e) {
       _pollTimer?.cancel();
       _pollTimer = null;
-      state = const AuthState(
+      state = AuthState(
         status: AuthStatus.error,
-        error: 'Could not connect. Check your internet connection.',
-      );
-    } on http.ClientException {
-      _pollTimer?.cancel();
-      _pollTimer = null;
-      state = const AuthState(
-        status: AuthStatus.error,
-        error: 'Network error. Please try again later.',
+        error: _friendlyHttpError(e),
       );
     } catch (e) {
       _pollTimer?.cancel();
@@ -222,6 +209,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } finally {
       _isPolling = false;
     }
+  }
+
+  String _friendlyHttpError(http.ClientException e) {
+    final msg = e.message;
+    if (msg.contains('SocketException') || msg.contains('Failed host lookup') ||
+        msg.contains('Connection refused') || msg.contains('No address') ||
+        msg.contains('network is unreachable') || msg.contains('No route to host')) {
+      return 'Could not connect. Check your internet connection.';
+    }
+    return 'Network error. Please try again later.';
   }
 
   void cancelSignIn() {
